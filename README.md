@@ -12,7 +12,7 @@ This series will walk you through different ways to deploy the application using
 
 Before we begin building, ensure you have the following:
 
-* A functioning rig application. We will be using this [rig app](https://github.com/garance-buricatu/rig-aws-lambda) in our examples.   
+* A functioning rig application. We will be using this [github repo](https://github.com/garance-buricatu/rig-aws-lambda) in our examples.   
 * An AWS account  
 * An Open AI api key
 
@@ -39,7 +39,7 @@ AWS Lambda supports Rust through the use of the [OS-only runtime Amazon Linux 20
 
 ### Our example: A basic OpenAI agent
 
-The mini app `flight-search-assistant-lambda` is a Rust program that is executed via the  `lambda_runtime`. It invokes an OpenAI agent, designed by `rig`, to help users find flights between airports. It is an event-based task that I will execute with the `lambda invoke` command.
+The mini app `rig-aws-lambda-rust` is a Rust program that is executed via the  `lambda_runtime`. It invokes an OpenAI agent, designed by `rig`, to help users find flights between airports. It is an event-based task that I will execute with the `lambda invoke` command.
 
 ##### My flight-search-assistant function is written, let’s deploy it to the cloud\!
 
