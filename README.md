@@ -23,7 +23,7 @@ You may want to deploy your Rust application on AWS lambda if it’s a task that
 
 ### AWS 🤝 Rust
 
-AWS Lambda supports Rust through the use of the [OS-only runtime Amazon Linux 2023](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html) in conjunction with the [Rust runtime client](https://github.com/awslabs/aws-lambda-rust-runtime), a rust crate. 
+AWS Lambda supports Rust through the use of the [OS-only runtime Amazon Linux 2023](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html) (a lambda runtime) in conjunction with the [Rust runtime client](https://github.com/awslabs/aws-lambda-rust-runtime), a rust crate. 
 
 #### REST API backend
 * Use the [`lambda-http`](https://github.com/awslabs/aws-lambda-rust-runtime/tree/main/lambda-http) crate (from the runtime client) to write your function’s entrypoint. 
@@ -39,50 +39,36 @@ AWS Lambda supports Rust through the use of the [OS-only runtime Amazon Linux 20
 
 ### Our example: A basic OpenAI agent
 
-The mini app `rig-aws-lambda-rust` is a Rust program that is executed via the  `lambda_runtime`. It invokes an OpenAI agent, designed by `rig`, to help users find flights between airports. It is an event-based task that I will execute with the `lambda invoke` command.
+The mini app in crate [`rig-entertainer-rust`](https://github.com/garance-buricatu/rig-aws-lambda/tree/master/rig-entertainer-rust) is a Rust program that is executed via the  `lambda_runtime`. It invokes an OpenAI agent, designed by `rig`, to entertain users with jokes. It is an event-based task that I will execute with the `lambda invoke` command.
 
-##### My flight-search-assistant function is written, let’s deploy it to the cloud\!
+##### My application is written, let’s deploy it to the cloud\!
 
 There are *many* ways to deploy Rust lambdas to AWS. Some out of the box options include the AWS CLI, the [cargo lambda](https://www.cargo-lambda.info/guide/getting-started.html) CLI, the AWS SAM CLI, the AWS CDK, and more. You can also decide to create a Dockerfile for your app and use that container image in your Lambda function instead. See some useful examples [here](https://docs.aws.amazon.com/lambda/latest/dg/rust-package.html).
 
-I used the cargo lambda CLI to deploy the code in `flight-seach-assistant-lambda` from my local machine to an AWS lambda:
+I used the cargo lambda CLI option to deploy the code in `rig-entertainer-rust` from my local machine to an AWS lambda:
 
-| // Added my AWS credentials to my terminal// Created an AWS Lambda function named ‘flight-search-assistant’ with architecture arm64.cargo lambda build \--release \--arm64cargo lambda deploy flight-search-assistant \--binary-name flight\_search\_assistant\_lambda |
-| :---- |
+```bash
+// 1 - Added my AWS credentials to my terminal
+// 2 - Created an AWS Lambda function named ‘rig-entertainer-rust’ with architecture x86_64.
 
-##### 
+cd rig-aws-lambda-rust
+cargo lambda build --release <--arm64>
+cargo lambda deploy rig-entertainer-rust
+``` 
 
 ##### Let’s talk about some AWS Lambda metrics when using Rust
 
-This is the code configuration of the `flight-search-assistant` function in AWS. The function’s code package (bundled code and dependencies required for lambda to run) includes the single rust binary called `bootstrap`, which is 3.9 MB\!![][image1]
+This is the code configuration of the `rig-entertainer-rust` function in AWS. The function’s code package (bundled code and dependencies required for lambda to run) includes the single rust binary called `bootstrap`, which is 3.2 MB.
 
-Below is a screenshot of the Cloudwatch logs of the function after running it a couple hundred times with different memory sizes. As you can see, the average memory usage tends to be around 29 MB.  
-![][image2]  
+![Deployment Package Rust](assets/deployment_package_rust.png)
+
+Below is a screenshot of average execution time comparisons when the lambda is invoked 50 times for each memory configuration of set to 128, 256, 512, 1024. The best configuration is 128 MB for an average runtime of 1390ms.
+![Power Tuner Rust](assets/power_tuner_rust.png)
+
+However, note that the average memory usage of the rust function is 26MB per execution.
+![alt text](assets/rig-cw-logs.png)
+
 What about cold starts?
 
-#### AWS Fargate (ECS)
-
-You may want to deploy your Rust application on AWS Fargate if it is a long running process, like an always-on web server for example.
-
-##### How does it work?
-
-We don’t need to use any specific runtime client here to deploy our code into a container. Just provide a Dockerfile for your Rust program and it’s good to go\!
-
-##### Our Example: A Discord chatbot
-
-The app `discord_rig_bot` is an always-on Rust program that listens for messages on specific Discord channels, and invokes an OpenAI agent, designed by `rig`, to answer questions about `rig`. The agent RAGs `rig` documentation, including examples, guides, and FAQs to provide extra context to the Open AI model. RAGing is done using an in memory vector store offered by `rig` out of the box.
-
-##### My discord\_rig\_bot program is written, let’s deploy it to the cloud\!
-
-* First step is to write the dockerfile:
-
-| FROM public.ecr.aws/docker/library/rust:latest as build // Use a basic rust image from ECRRUN apt-get updateWORKDIR /discord-rig-botCOPY . /discord-rig-botRUN cargo build \--releaseFROM public.ecr.aws/amazonlinux/amazonlinux:2023-minimal as runtimeCOPY \--from=build /discord-rig-bot/target/release/discord\_rig\_bot .CMD \["./discord\_rig\_bot"\] |
-| :---- |
-
-* Next step is to upload the image to ECR
-
-| // Created a private repository in ECR named “\<your account number\>[.dkr.ecr.us-east-1.amazonaws.com/discord-rig-bot](http://.dkr.ecr.us-east-1.amazonaws.com/discord-rig-bot)” // Added my AWS credentials to my terminal docker build \-t 123456789000[.dkr.ecr.us-east-1.amazonaws.com/discord-rig-bot](http://.dkr.ecr.us-east-1.amazonaws.com/discord-rig-bot) . aws ecr get-login-password \--region us-east-1 | docker login \- \-username AWS \--password-stdin 123456789000.dkr.ecr.us-east-1.amazonaws.com docker push 123456789000[.dkr.ecr.us-east-1.amazonaws.com/discord-rig-bot](http://.dkr.ecr.us-east-1.amazonaws.com/discord-rig-bot) |
-| :---- |
-
-1. AWS Amplify  
-2. Shuttle RS
+##### Comparison with the Langchain library in python
+I replicated the OpenAI entertainer agent using the langchain python library. 
