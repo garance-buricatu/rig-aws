@@ -41,7 +41,7 @@ AWS Lambda supports Rust through the use of the [OS-only runtime Amazon Linux 20
 
 The mini app in crate [`rig-entertainer-rust`](https://github.com/garance-buricatu/rig-aws-lambda/tree/master/rig-entertainer-rust) is a Rust program that is executed via the  `lambda_runtime`. It invokes an OpenAI agent, designed by `rig`, to entertain users with jokes. It is an event-based task that I will execute with the `lambda invoke` command.
 
-##### My application is written, let’s deploy it to the cloud\!
+#### My application is written, let’s deploy it to the cloud\!
 
 There are *many* ways to deploy Rust lambdas to AWS. Some out of the box options include the AWS CLI, the [cargo lambda](https://www.cargo-lambda.info/guide/getting-started.html) CLI, the AWS SAM CLI, the AWS CDK, and more. You can also decide to create a Dockerfile for your app and use that container image in your Lambda function instead. See some useful examples [here](https://docs.aws.amazon.com/lambda/latest/dg/rust-package.html).
 
@@ -56,7 +56,7 @@ cargo lambda build --release <--arm64>
 cargo lambda deploy rig-entertainer-rust
 ``` 
 
-##### Let’s talk about some AWS Lambda metrics when using Rust
+#### Let’s talk about some AWS Lambda metrics when using Rust
 
 This is the code configuration of the `rig-entertainer-rust` function in AWS. The function’s code package (bundled code and dependencies required for lambda to run) includes the single rust binary called `bootstrap`, which is 3.2 MB.
 
@@ -70,5 +70,12 @@ However, note that the average memory usage of the rust function is 26MB per exe
 
 What about cold starts?
 
-##### Comparison with the Langchain library in python
-I replicated the OpenAI entertainer agent using the langchain python library. 
+### How does it compare with python LLM tools like Langchain?
+**Disclaimer**:
+I replicated the OpenAI entertainer agent using the [langchain](https://python.langchain.com/docs/introduction/) python library in this [mini python app](https://github.com/garance-buricatu/rig-aws-lambda/tree/master/langchain-entertainer-python) which I also deployed as an AWS Lambda.
+
+![alt text](assets/deployment_package_python.png)
+
+![alt text](assets/langchain-cw-logs.png)
+
+![alt text](assets/power_tuner_python.png)
