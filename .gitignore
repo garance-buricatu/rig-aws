@@ -1,2 +1,4 @@
 /rig-entertainer-lambda/target
 /langchain-entertainer-lambda/.venv
+/rig-entertainer-ecs/target
+/langchain-entertainer-ecs/.venv

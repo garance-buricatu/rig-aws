@@ -51,9 +51,9 @@ I used the cargo lambda CLI option to deploy the code in `rig-entertainer-rust` 
 // 1 - Added my AWS credentials to my terminal
 // 2 - Created an AWS Lambda function named ‘rig-entertainer-rust’ with architecture x86_64.
 
-cd rig-aws-lambda-rust
+cd rig-entertainer-lambda
 cargo lambda build --release <--arm64>
-cargo lambda deploy rig-entertainer-rust
+cargo lambda deploy rig-entertainer-rust --binary-name rig_entertainer
 ``` 
 
 #### Let’s talk about some AWS Lambda metrics when using Rust
