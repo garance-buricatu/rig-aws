@@ -66,16 +66,26 @@ Below is a screenshot of average execution time comparisons when the lambda is i
 ![Power Tuner Rust](assets/power_tuner_rust.png)
 
 However, note that the average memory usage of the rust function is 26MB per execution.
-![alt text](assets/rig-cw-logs.png)
-
-What about cold starts?
+![Rig Cloudwatch logs](assets/rig-cw-logs.png)
 
 ### How does it compare with python LLM tools like Langchain?
-**Disclaimer**:
 I replicated the OpenAI entertainer agent using the [langchain](https://python.langchain.com/docs/introduction/) python library in this [mini python app](https://github.com/garance-buricatu/rig-aws-lambda/tree/master/langchain-entertainer-python) which I also deployed as an AWS Lambda.
 
-![alt text](assets/deployment_package_python.png)
+This is the code configuration of the `langchain-entertainer-python` function in AWS. The function’s code package is a zip file including the lambda function code and all dependencies required for the lambda program to run.
+![Deployment Package Python](assets/deployment_package_python.png)
 
 ![alt text](assets/langchain-cw-logs.png)
 
 ![alt text](assets/power_tuner_python.png)
+
+### Cold starts
+[Cold starts](https://docs.aws.amazon.com/lambda/latest/operatorguide/execution-environments.html) occur when the lambda function's execution environment needs to be booted up from scratch. This includes settinging the actual compute that the lambda function is running on, and downloading the lambda function code and dependencies in that environment.    
+Cold start latency doesn't affect all function executions because once the lambda environment has been setup, it will be reused by subsequent executions of the same lambda.   
+
+In Cloudwatch logs, if a function execution requires a cold start, we see the `Init Duration` metric at the end of the execution. 
+
+For `rig-entertainer-rust`, we can see that the average cold start time is 90.9ms:
+![Rig cold starts](assets/rig-coldstarts.png)
+
+For `langchain-entertainer-py`, the average cold start time is: 1,898.52ms, ie. 20x as much as the rig coldstart.
+![Langchain cold starts](assets/langchain-coldstarts.png)
