@@ -927,7 +927,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rig-entertainer-rust"
+name = "rig-entertainer"
 version = "0.1.0"
 dependencies = [
  "anyhow",
