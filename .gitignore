@@ -2,3 +2,4 @@
 /langchain-entertainer-lambda/.venv
 /rig-entertainer-ecs/target
 /langchain-entertainer-ecs/.venv
+/rig-entertainer-lancedb-local/target
