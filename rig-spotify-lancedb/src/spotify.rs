@@ -8,11 +8,11 @@ pub struct SpotifyClient {
 }
 
 impl SpotifyClient {
-    pub fn new() -> Self {
+    pub fn new(api_key: String) -> Self {
         let http_client = reqwest::Client::new();
         Self {
             http_client,
-            api_key: std::env::var("RAPIDAPI_KEY").expect("RAPIDAPI_KEY not set!"),
+            api_key
         }
     }
 
@@ -64,10 +64,7 @@ impl SpotifyClient {
             "3fMbdgg4jU18AjLCKBhRSm",
             "72OaDtakiy6yFqkt4TsiFt",
             "5pKCCKE2ajJHZ9KAiaK11H",
-            "1dfeR4HaWDbWqFHLkxsg1d",
-            "0k17h0D3J5VfsdmQ1iZtE9",
-            "6tbjWDEIzxoDsBA1FuhfPW",
-            "1zuJe6b1roixEKMOtyrEak"
+            "1dfeR4HaWDbWqFHLkxsg1d"
         ];
 
         let json_documents = futures::stream::iter(artist_ids)

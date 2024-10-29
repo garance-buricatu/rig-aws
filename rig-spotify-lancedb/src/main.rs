@@ -43,10 +43,12 @@ async fn main() -> Result<(), Error> {
     );
 
     // Initialize LanceDb client
-    let db = lancedb::connect("tmp").execute().await?;
+    let db = lancedb::connect("lancedb/data").execute().await?;
 
     // Initialize Spotify client
-    let spotify_client = SpotifyClient::new();
+    let spotify_client = SpotifyClient::new(
+        std::env::var("RAPIDAPI_KEY").expect("RAPIDAPI_KEY not set!")
+    );
 
     run(service_fn(|request: LambdaEvent<Event>| {
         handler(request, &openai_client, &db, &spotify_client)
