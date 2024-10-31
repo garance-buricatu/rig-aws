@@ -2,4 +2,5 @@
 /langchain-entertainer-lambda/.venv
 /rig-entertainer-ecs/target
 /langchain-entertainer-ecs/.venv
-/rig-spotify-lancedb/target
+/rig-spotify-lancedb/efs/target
+/rig-spotify-lancedb/local/target

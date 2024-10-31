@@ -1,5 +1,5 @@
 # Deploying Rig on Lambda with LanceDB vector store
-LanceDB is a vector databases built from the ground-up to be efficient on disk. It supports multiple storage backends, including local NVMe, EBS, EFS and other third-party APIs that connect to the cloud. We will walk though three different storage options for your Rig app that uses LanceDb when deployed on AWS lambda.
+LanceDB is a vector database built from the ground-up to be efficient on disk. It supports multiple storage backends, including local NVMe, EBS, EFS and other third-party APIs that connect to the cloud. We will walk though three different storage options for your Rig app deployed on AWS Lambda that uses LanceDB as a vector store.
 
 ## Local - Ephemeral storage
 https://docs.aws.amazon.com/lambda/latest/dg/configuration-ephemeral-storage.html
@@ -22,12 +22,30 @@ Cost - highest cost
 ## Local - EFS
 https://aws.amazon.com/blogs/compute/using-amazon-efs-for-aws-lambda-in-your-serverless-applications/
 
-Serverless, elastic, shared file system designed to be consumed by other AWS services. Data in EFS is persisted and can be shared across lambda invocations. Supports up to 25,000 concurrent connections.
+EFS is a serverless, elastic, shared file system designed to be consumed by other AWS services. Data in EFS is persisted and can be shared across lambda invocations (unlike the ephemeral storage option above). It supports up to 25,000 concurrent connections.
 
-Cold starts - when a lambda' function execution environment is prepared for the first time, the file system is mounted. When the execution environment is warm from previous invocations, the EFS mount is already available.
+Since the data in the file system can be shared, we will have a single lambda **writing** data to the EFS file system and many lambdas **reading** from the EFS file system.
 
-Performance
-Cost
+### Setup EFS with AWS Lambda
+Follow these steps to setup your file system with your lambda function:   
+1. Create EFS file system.
+* **Performance  mode**: I chose **general purpose** for my app
+* **Throughput mode**: I chose **elastic** for my app 
+* **Networking**: Chose the **VPC** that the file system will live in, and the **subnets** that it will be mounted on. I chose two **private subnets** in different availability zones. **Note**: we will come back here later to set up a **security group** for each mount target.
+* **Access points**: Create a single access point with the following config:
+![alt text](efs/assets/image.png)
+
+2. Create lambda function that **writes** to EFS.
+* See code
+
+3. Create lambda function that **reads** from EFS.
+
+
+### Cold starts
+When a lambda' function execution environment is prepared for the first time, the file system is mounted. When the execution environment is warm from previous invocations, the EFS mount is already available.
+
+### Performance
+### Cost
 
 ## S3
 Performance - highest latency
