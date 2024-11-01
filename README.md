@@ -40,6 +40,8 @@ Today, we’ll start with a simple Rig agent that uses the [OpenAI model GPT-4-t
 
 This blog will provide a step-by-step deployment guide for the simple Rig app, showcase performance metrics of the Rig app running on AWS Lambda, and compare these metrics with those of a [LangChain]((https://www.langchain.com)) app on the same platform.
 
+💡 If you're new to Rig and want to start from the beginning or are looking for additional tutorials, check out our [blog series](https://rig.rs/build-with-rig-guide.html).
+
 Let’s dive in!
 
 ## Prerequisites
@@ -70,12 +72,12 @@ AWS Lambda supports Rust through the use of the [OS-only runtime Amazon Linux 20
 
 **Note**: for both cases, the crate [`tokio`](https://docs.rs/tokio/latest/tokio/) must also be added to your project as the lambda runtime client uses `tokio` to handle asynchronous calls.
 
-## Rig Entertainer Agent App
+## Rig Entertainer Agent App 🤡
 
 The mini app in crate [`rig-entertainer-lambda`](https://github.com/garance-buricatu/rig-aws-lambda/tree/master/rig-entertainer-lambda) is a Rust program that is executed via the `lambda_runtime`. It invokes an OpenAI agent, designed by `rig`, to entertain users with jokes. It is an event-based task that I will execute with the `lambda invoke` command.
 
 The main takeaway here is that the app's `Cargo.toml` file must include the following dependencies:   
-1. `rig-core`
+1. `rig-core` (our rig crate)
 2. `lambda_runtime`
 3. `tokio`
 
@@ -96,7 +98,7 @@ cargo lambda build --release // Can define different architectures here with --a
 cargo lambda deploy $function_name // Since the name of the crate is the same as the the lambda function name, no need to specify a binary file
 ``` 
 
-### Metrics on the cloud
+### Metrics on the cloud ☁️
 
 #### Deployment package
 This is the code configuration of the `rig-entertainer` function in AWS. The function’s code package (bundled code and dependencies required for lambda to run) includes the single rust binary called `bootstrap`, which is 3.2 MB.
@@ -104,21 +106,21 @@ This is the code configuration of the `rig-entertainer` function in AWS. The fun
 ![Deployment Package Rust](rig-entertainer-lambda/assets/rig-deployment-package.png)
 
 #### Memory, CPU, and runtime
-The image below gives metrics on memory usage and execution time of the function. In **yellow** is the **total memory used** by a single execution, in **red** is the amount of **memory allocated** to a single execution, and in **blue** is the **runtime** of an execution.
-We can see that there are varying memory configurations from 128MB, 256MB, 512MB, to 1024MB and that the average amount of memory used is **26MB**.
+The image below gives metrics on memory usage and execution time of the function. Each row represents a single execution of the function. In **yellow** is the **total memory used**, in **red** is the amount of **memory allocated**, and in **blue** is the **runtime**.
+We can see that there are varying memory configurations from 128MB, 256MB, 512MB, to 1024MB and that the average memory used per execution used is **26MB**.
 ![Rig Cloudwatch logs](rig-entertainer-lambda/assets/rig-cw-logs.png)
 
 Let's get more information on the metrics above by spamming the function and calculating averages. I invoked `rig-entertainer` 50 times for each memory configuration of 128MB, 256MB, 512MB, 1024MB using the [power tuner tool](https://github.com/alexcasalboni/aws-lambda-power-tuning) and the result of those invocations are displayed in the chart below. 
 
 The x-axis is the memory allocation, and the y-axis is the average runtime over the 50 executions of `rig-entertainer`. 
 
-**Q.** We know that the function uses on average only 26MB per execution (no matter the memory allocated) so you might be wondering why we would need to test all those different configurations?   
+**Q.** We know that the function uses on average only 26MB per execution (no matter the memory allocated) so why should we test all of those different memory configurations?   
 **A.** [vCPUs are added to the lambda in proportion to memory](https://docs.aws.amazon.com/lambda/latest/operatorguide/computing-power.html) so adding memory could still affect the performance.
 
-However, we can see that adding memory to the function (and therefore adding computational power) does not affect the function performance at all. Since the [cost of a lambda execution](https://aws.amazon.com/lambda/pricing/) is calculated in GB-seconds, we get a very efficient lambda for the lowest price! 
+However, we can see that adding memory to the function (and therefore adding computational power) does not affect its performance at all. Since the [cost of a lambda execution](https://aws.amazon.com/lambda/pricing/) is calculated in GB-seconds, we get the most efficient lambda for the lowest price! 
 ![Power Tuner Rust](rig-entertainer-lambda/assets/rig-power-tuner.png)
 
-#### Cold starts
+#### Cold starts ❄️
 [Cold starts](https://docs.aws.amazon.com/lambda/latest/operatorguide/execution-environments.html) occur when the lambda function's execution environment needs to be booted up from scratch. This includes setting up the actual compute that the lambda function is running on, and downloading the lambda function code and dependencies in that environment.    
 Cold start latency doesn't affect all function executions because once the lambda environment has been setup, it will be reused by subsequent executions of the same lambda.   
 
@@ -128,7 +130,7 @@ For `rig-entertainer`, we can see that the average cold start time is **90.9ms**
 ![Rig cold starts](rig-entertainer-lambda/assets/rig-coldstarts.png)
 Note that the function was affected by cold starts 9 times out of the 245 times it was executed, so **0.036%** of the time.
 
-## Langchain Entertainer Agent App
+## Langchain Entertainer Agent App 🐍
 I replicated the OpenAI entertainer agent using the [langchain](https://python.langchain.com/) python library in this [mini python app](https://github.com/garance-buricatu/rig-aws-lambda/tree/master/langchain-entertainer-lambda) which I also deployed to AWS Lambda in a function called `langchain-entertainer`.
 
 Let's compare the metrics outlined above.
@@ -147,13 +149,13 @@ Let's get some more averages for these metrics: I invoked `langchain-entertainer
 We can see that by increasing the memory allocation (and therefore computation power) of `langchain-entertainer`, the function becomes more performant (lower runtime). However, note that since you pay per GB-seconds, a more performant function is more expensive. 
 ![alt text](langchain-entertainer-lambda/assets/power-tuner.png)
 
-#### Cold starts
+#### Cold starts ❄️
 For `langchain-entertainer`, the average cold start time is: **1,898.52ms**, ie. 20x as much as the rig app coldstart.
 ![Langchain cold starts](langchain-entertainer-lambda/assets/coldstarts.png)
 Note that the function was affected by cold starts 6 times out of the 202 times it was executed, so **0.029%** of the time.
 
 
-## Community and Ecosystem
+## Resources
 
 Rig is an emerging project in the open-source community, and we're continuously expanding its ecosystem with new integrations and tools. We believe in the power of community-driven development and welcome contributions from developers of all skill levels.
 
