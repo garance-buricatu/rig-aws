@@ -1,7 +1,7 @@
 # How to Deploy Your Rig App on AWS Lambda: A Step-by-Step Guide
 
 **TL;DR**
-- **Rig**: Rust library simplifying LLM app development
+- **Rig**: The Fullstack Agent Framework in Rust
 - **Developer-Friendly**: Intuitive API design, comprehensive documentation, and scalability from simple chatbots to complex AI systems.
 - **Key Features**: Unified API across LLM providers (OpenAI, Cohere); Streamlined embeddings and vector store support; High-level abstractions for complex AI workflows (e.g., RAG); Leverages Rust's performance and safety; Extensible for custom implementations
 - **Contribute**: Build with Rig, provide feedback, win $100
