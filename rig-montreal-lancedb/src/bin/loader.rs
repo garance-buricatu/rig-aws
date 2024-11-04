@@ -8,7 +8,7 @@ use rig::{
     embeddings::{EmbeddingModel, EmbeddingsBuilder},
     providers::{self, cohere::EMBED_MULTILINGUAL_LIGHT_V3},
 };
-use rig_spotify_lancedb::{
+use rig_montreal_lancedb::{
     arrow_helper::{as_record_batch, schema},
     montreal::{api::MontrealOpenDataClient, CategoryMetadata},
 };
