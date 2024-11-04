@@ -3914,7 +3914,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rig-spotify-lancedb"
+name = "rig-montreal-lancedb"
 version = "0.1.0"
 dependencies = [
  "anyhow",
