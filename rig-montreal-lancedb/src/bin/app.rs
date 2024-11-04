@@ -4,7 +4,7 @@ use lambda_runtime::{run, service_fn, tracing::Level, Error, LambdaEvent};
 use lancedb::Connection;
 use rig::{
     completion::Prompt,
-    providers::{self, openai::TEXT_EMBEDDING_ADA_002},
+    providers::{self, cohere::EMBED_MULTILINGUAL_LIGHT_V3},
 };
 use rig_lancedb::{LanceDbVectorStore, SearchParams};
 use serde::{Deserialize, Serialize};
@@ -32,35 +32,35 @@ async fn main() -> Result<(), Error> {
         .init();
 
     // Initialize the OpenAI client
-    let openai_client = providers::openai::Client::new(
-        &env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set"),
+    let cohere_client = providers::cohere::Client::new(
+        &env::var("COHERE_API_KEY").expect("COHERE_API_KEY not set"),
     );
 
     // Initialize LanceDb client
     let db = lancedb::connect("/mnt/efs").execute().await?;
 
     run(service_fn(|request: LambdaEvent<Event>| {
-        handler(request, &openai_client, &db)
+        handler(request, &cohere_client, &db)
     }))
     .await
 }
 
 async fn handler(
     request: LambdaEvent<Event>,
-    openai_client: &providers::openai::Client,
+    cohere_client: &providers::cohere::Client,
     db: &Connection,
 ) -> Result<AgentResponse, Error> {
-    let model = openai_client.embedding_model(TEXT_EMBEDDING_ADA_002);
+    let model = cohere_client.embedding_model(EMBED_MULTILINGUAL_LIGHT_V3, "search_query");
 
-    let table = db.open_table("my_library").execute().await?;
+    let table = db.open_table("montreal_open_data").execute().await?;
 
     // Define search_params params that will be used by the vector store to perform the vector search.
     let search_params = SearchParams::default().distance_type(lancedb::DistanceType::Cosine);
     let index = LanceDbVectorStore::new(table, model, "id", search_params).await?;
 
     // Create agent with a single context prompt
-    let spotify_agent = openai_client
-        .agent("gpt-4o")
+    let spotify_agent = cohere_client
+        .agent("c4ai-aya-expanse-8b")
         .dynamic_context(5, index)
         .build();
 
