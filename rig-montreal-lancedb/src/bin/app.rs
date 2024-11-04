@@ -36,8 +36,10 @@ async fn main() -> Result<(), Error> {
         &env::var("COHERE_API_KEY").expect("COHERE_API_KEY not set"),
     );
 
-    // Initialize LanceDb client
-    let db = lancedb::connect("/mnt/efs").execute().await?;
+    // Initialize LanceDb client on EFS mount target
+    // Use `/mnt/efs` if data is stored on EFS
+    // Use `/tmp` if data is stored on local disk in lambda
+    let db = lancedb::connect("data/lancedb").execute().await?;
 
     run(service_fn(|request: LambdaEvent<Event>| {
         handler(request, &cohere_client, &db)
@@ -60,8 +62,8 @@ async fn handler(
 
     // Create agent with a single context prompt
     let spotify_agent = cohere_client
-        .agent("c4ai-aya-expanse-8b")
-        .dynamic_context(5, index)
+        .agent("command-r-plus-04-2024")
+        .dynamic_context(1, index)
         .build();
 
     // Prompt the agent and print the response

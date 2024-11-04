@@ -6,7 +6,7 @@ use lambda_runtime::{run, service_fn, tracing::Level, Error, LambdaEvent};
 use lancedb::{index::vector::IvfPqIndexBuilder, Connection};
 use rig::{
     embeddings::{EmbeddingModel, EmbeddingsBuilder},
-    providers::{self, openai::TEXT_EMBEDDING_ADA_002},
+    providers::{self, cohere::EMBED_MULTILINGUAL_LIGHT_V3},
 };
 use rig_spotify_lancedb::{
     arrow_helper::{as_record_batch, schema},
@@ -15,7 +15,7 @@ use rig_spotify_lancedb::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
-struct Event;
+struct Event {}
 
 #[derive(Serialize)]
 struct Response {
@@ -36,11 +36,13 @@ async fn main() -> Result<(), Error> {
 
     // Initialize the OpenAI client
     let cohere_client = providers::cohere::Client::new(
-        &env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set"),
+        &env::var("COHERE_API_KEY").expect("COHERE_API_KEY not set"),
     );
 
     // Initialize LanceDb client oon EFS mount target
-    let db = lancedb::connect("/mnt/efs").execute().await?;
+    // Use `/mnt/efs` if data is stored on EFS
+    // Use `/tmp` if data is stored on local disk in lambda
+    let db = lancedb::connect("data/lancedb").execute().await?;
 
     // Initialize Spotify client
     let montreal_client = MontrealOpenDataClient::new();
@@ -57,13 +59,15 @@ async fn handler(
     db: &Connection,
     montreal_client: &MontrealOpenDataClient,
 ) -> Result<Response, Error> {
-    let model = cohere_client.embedding_model(TEXT_EMBEDDING_ADA_002, "search_document");
+    let model = cohere_client.embedding_model(EMBED_MULTILINGUAL_LIGHT_V3, "search_document");
 
     let embeddings_builder = montreal_client
         .search_all()
         .fold(
             EmbeddingsBuilder::new(model.clone()),
             |builder, opendata_item| async move {
+                tracing::info!("Handling item: {}", opendata_item.id);
+
                 let category = CategoryMetadata::from(opendata_item);
 
                 let category_json = serde_json::to_value(&category).unwrap();
@@ -78,6 +82,8 @@ async fn handler(
         .await;
 
     let embeddings = embeddings_builder.build().await.unwrap();
+
+    tracing::info!("Embeddings successfully created!");
 
     let record_batch = as_record_batch(embeddings, model.ndims());
 

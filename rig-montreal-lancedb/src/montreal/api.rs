@@ -41,9 +41,10 @@ impl MontrealOpenDataClient {
                     Ok(response) => {
                         let results = response.result.results;
 
-                        if results.len() < PAGE_SIZE {
+                        if results.len() == 0 {
                             None
                         } else {
+                            tracing::info!("Fetched {} results", results.len());
                             Some((stream::iter(results.clone()), results.len() + skip))
                         }
                     }
