@@ -1,0 +1,135 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  VPCId:
+    Description: "Vpc in which both EFS and Lambda will be created."
+    Type: String
+  PrivateSubnet1:
+    Description: "Id of the private subnet where the EFS mount target will be created."
+    Type: String
+  PrivateSubnet2:
+    Description: "Id of another private subnet in different AZ where the second EFS mount target will be created."
+    Type: String
+  S3Code:
+    Description: S3 bucket where the lambda code is stored
+    Type: String
+
+Resources:
+  FileSystem:
+    Type: "AWS::EFS::FileSystem"
+    Properties:
+      ThroughputMode: "elastic"
+      Encrypted: true
+
+  FileSystemAccessPoint:
+    Type: "AWS::EFS::AccessPoint"
+    Properties:
+      FileSystemId: !Ref FileSystem
+      PosixUser:
+        Uid: "1001"
+        Gid: "1001"
+      RootDirectory:
+        Path: "/efs"
+        CreationInfo:
+          OwnerUid: "1001"
+          OwnerGid: "1001"
+          Permissions: "755"
+      Name: "ap-1"
+
+  MountTarget1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref FileSystem
+      SecurityGroups: 
+        - !Ref EFSSecurityGroup
+      SubnetId: !Ref PrivateSubnet1
+
+  MountTarget2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref FileSystem
+      SecurityGroups: 
+        - !Ref EFSSecurityGroup
+      SubnetId: !Ref PrivateSubnet2
+
+  EFSSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Allow EFS mount targets receive requests from lambda function."
+      VpcId: !Ref VPCId 
+      SecurityGroupIngress:
+        # Whitelist NFS traffic from lambda function
+        - IpProtocol: "tcp"
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: provided.al2023
+      Role: !Ref LambdaExecutionRole
+      Code: 
+        S3Bucket: !Ref S3Code
+        S3Key: bootstrap
+      VpcConfig:
+        SecurityGroupIds:
+          # Whitelist NFS traffic to mount targets
+          # Whitelist HTTPS traffic to the internet (calling API)
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          # Same subnets where EFS mount targets are created
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      FileSystemConfigs:
+        - Arn: !GetAtt FileSystemAccessPoint.Arn
+          LocalMountPath: "/mnt/efs"  # Path where the EFS will be mounted in the Lambda environment
+
+  LambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "LambdaEC2NetworkInterfacePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: "VisualEditor0"
+                Effect: "Allow"
+                Action:
+                  - "ec2:CreateNetworkInterface"
+                  - "ec2:DescribeNetworkInterfaces"
+                  - "ec2:CreateTags"
+                  - "ec2:DeleteNetworkInterface"
+                  - "ec2:AttachNetworkInterface"
+                Resource: "*"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonElasticFileSystemClientReadWriteAccess"
+
+  LambdaSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Allow lambda to make requests to EFS mount targets and to public internet."
+      VpcId: !Ref VPCId 
+      SecurityGroupEgress:
+        # Whitelist HTTPS traffic to the internet (calling public API)
+        - IpProtocol: "tcp"
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+      # Whitelist NFS traffic to mount target 1
+        - IpProtocol: "tcp"
+          FromPort: 2049
+          ToPort: 2049
+          CidrIp: !GetAtt MountTarget1.IpAddress
+      # Whitelist NFS traffic to mount target 2
+        - IpProtocol: "tcp"
+          FromPort: 2049
+          ToPort: 2049
+          CidrIp: !GetAtt MountTarget2.IpAddress
