@@ -39,7 +39,8 @@ async fn main() -> Result<(), Error> {
     // Initialize LanceDb client on EFS mount target
     // Use `/mnt/efs` if data is stored on EFS
     // Use `/tmp` if data is stored on local disk in lambda
-    let db = lancedb::connect("data/lancedb").execute().await?;
+    // Use S3 uri if data is stored in S3
+    let db = lancedb::connect("/mnt/efs").execute().await?;
 
     run(service_fn(|request: LambdaEvent<Event>| {
         handler(request, &cohere_client, &db)

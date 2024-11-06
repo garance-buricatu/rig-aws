@@ -2,16 +2,20 @@ AWSTemplateFormatVersion: "2010-09-09"
 
 Parameters:
   VPCId:
-    Description: "Vpc in which both EFS and Lambda will be created."
+    Description: Vpc in which both EFS and Lambda will be created. Id has format "vpc-xxxxxx".
     Type: String
   PrivateSubnet1:
-    Description: "Id of the private subnet where the EFS mount target will be created."
+    Description: | 
+      Id of a private subnet where the EFS mount target will be created. Id has format "subnet-xxxxxx".
+      Make sure the subnet has access to the public internet, ie. Route table point 0.0.0.0/0 traffic to a NAT Gateway.
     Type: String
   PrivateSubnet2:
-    Description: "Id of another private subnet in different AZ where the second EFS mount target will be created."
+    Description: |
+      Id of another private subnet in different AZ where the second EFS mount target will be created. Id has format "subnet-xxxxxx".
+      Make sure the subnet has access to the public internet, ie. Route table point 0.0.0.0/0 traffic to a NAT Gateway.
     Type: String
   S3Code:
-    Description: S3 bucket where the lambda code is stored
+    Description: S3 bucket name where the lambda code is stored.
     Type: String
 
 Resources:
@@ -34,7 +38,6 @@ Resources:
           OwnerUid: "1001"
           OwnerGid: "1001"
           Permissions: "755"
-      Name: "ap-1"
 
   MountTarget1:
     Type: AWS::EFS::MountTarget
@@ -64,14 +67,38 @@ Resources:
           ToPort: 2049
           SourceSecurityGroupId: !Ref LambdaSecurityGroup
 
-  LambdaFunction:
+  LoaderLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
       Runtime: provided.al2023
-      Role: !Ref LambdaExecutionRole
+      Handler: hello.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
       Code: 
         S3Bucket: !Ref S3Code
-        S3Key: bootstrap
+        S3Key: loader/bootstrap
+      VpcConfig:
+        SecurityGroupIds:
+          # Whitelist NFS traffic to mount targets
+          # Whitelist HTTPS traffic to the internet (calling API)
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          # Same subnets where EFS mount targets are created
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      FileSystemConfigs:
+        - Arn: !GetAtt FileSystemAccessPoint.Arn
+          LocalMountPath: "/mnt/efs"  # Path where the EFS will be mounted in the Lambda environment
+
+
+  AppLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: provided.al2023
+      Handler: hello.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code: 
+        S3Bucket: !Ref S3Code
+        S3Key: app/bootstrap
       VpcConfig:
         SecurityGroupIds:
           # Whitelist NFS traffic to mount targets
@@ -117,19 +144,23 @@ Resources:
     Properties:
       GroupDescription: "Allow lambda to make requests to EFS mount targets and to public internet."
       VpcId: !Ref VPCId 
-      SecurityGroupEgress:
-        # Whitelist HTTPS traffic to the internet (calling public API)
-        - IpProtocol: "tcp"
-          FromPort: 443
-          ToPort: 443
-          CidrIp: "0.0.0.0/0"
-      # Whitelist NFS traffic to mount target 1
-        - IpProtocol: "tcp"
-          FromPort: 2049
-          ToPort: 2049
-          CidrIp: !GetAtt MountTarget1.IpAddress
-      # Whitelist NFS traffic to mount target 2
-        - IpProtocol: "tcp"
-          FromPort: 2049
-          ToPort: 2049
-          CidrIp: !GetAtt MountTarget2.IpAddress
+  
+  LambdaSecurityGroupEFSEgress:
+    # Whitelist NFS traffic to mount targets
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: "tcp"
+      FromPort: 2049
+      ToPort: 2049
+      DestinationSecurityGroupId: !Ref EFSSecurityGroup
+      GroupId: !Ref LambdaSecurityGroup
+  
+  LambdaSecurityGroupInternetEgress:
+    # Whitelist HTTPS traffic to the internet (calling API)
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: "tcp"
+      FromPort: 443
+      ToPort: 443
+      CidrIp: "0.0.0.0/0"
+      GroupId: !Ref LambdaSecurityGroup

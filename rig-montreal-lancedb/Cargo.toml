@@ -9,7 +9,7 @@ arrow-array = "52.2.0"
 chrono = "0.4.38"
 futures = "0.3.31"
 lambda_runtime = "0.13.0"
-lancedb = "0.12.0"
+lancedb = "0.10.0"
 openssl = { version = "0.10.68", features = ["vendored"]}
 reqwest = "0.12.8"
 rig-core = { version = "0.3.0" }
