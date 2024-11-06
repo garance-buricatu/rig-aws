@@ -7,21 +7,27 @@ Parameters:
   PrivateSubnet1:
     Description: | 
       Id of a private subnet where the EFS mount target will be created. Id has format "subnet-xxxxxx".
-      Make sure the subnet has access to the public internet, ie. Route table point 0.0.0.0/0 traffic to a NAT Gateway.
+      Make sure the subnet has access to the public internet, ie. Route table points 0.0.0.0/0 traffic to a NAT Gateway.
     Type: String
   PrivateSubnet2:
     Description: |
       Id of another private subnet in different AZ where the second EFS mount target will be created. Id has format "subnet-xxxxxx".
-      Make sure the subnet has access to the public internet, ie. Route table point 0.0.0.0/0 traffic to a NAT Gateway.
+      Make sure the subnet has access to the public internet, ie. Route table points 0.0.0.0/0 traffic to a NAT Gateway.
     Type: String
-  S3Code:
+  S3Bucket:
     Description: S3 bucket name where the lambda code is stored.
+    Type: String
+  # NOTE: Do NOT do this in production. Use AWS Secrets Manager or SSM Parameter Store instead.
+  # Right now, it's passing the api key directly as env var to the lambda which is not secure.
+  CohereApiKey:
+    Description: Cohere api key.
     Type: String
 
 Resources:
   FileSystem:
     Type: "AWS::EFS::FileSystem"
     Properties:
+      # Change this based on your needs. Provisioned mode is often recommended for cheaper solution.
       ThroughputMode: "elastic"
       Encrypted: true
 
@@ -39,6 +45,7 @@ Resources:
           OwnerGid: "1001"
           Permissions: "755"
 
+  # Define subnet where EFS will live in some AZ.
   MountTarget1:
     Type: AWS::EFS::MountTarget
     Properties:
@@ -47,6 +54,7 @@ Resources:
         - !Ref EFSSecurityGroup
       SubnetId: !Ref PrivateSubnet1
 
+  # Define subnet where EFS will live in another AZ.
   MountTarget2:
     Type: AWS::EFS::MountTarget
     Properties:
@@ -69,13 +77,20 @@ Resources:
 
   LoaderLambdaFunction:
     Type: AWS::Lambda::Function
+    DependsOn:
+      - MountTarget1
+      - MountTarget2
     Properties:
       Runtime: provided.al2023
       Handler: hello.handler
       Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 300
       Code: 
-        S3Bucket: !Ref S3Code
-        S3Key: loader/bootstrap
+        S3Bucket: !Ref S3Bucket
+        S3Key: loader/bootstrap.zip
+      Environment:
+        Variables:
+          COHERE_API_KEY: !Ref CohereApiKey
       VpcConfig:
         SecurityGroupIds:
           # Whitelist NFS traffic to mount targets
@@ -92,13 +107,20 @@ Resources:
 
   AppLambdaFunction:
     Type: AWS::Lambda::Function
+    DependsOn:
+      - MountTarget1
+      - MountTarget2
     Properties:
       Runtime: provided.al2023
       Handler: hello.handler
       Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 300
       Code: 
-        S3Bucket: !Ref S3Code
-        S3Key: app/bootstrap
+        S3Bucket: !Ref S3Bucket
+        S3Key: app/bootstrap.zip
+      Environment:
+        Variables:
+          COHERE_API_KEY: !Ref CohereApiKey
       VpcConfig:
         SecurityGroupIds:
           # Whitelist NFS traffic to mount targets
@@ -138,6 +160,7 @@ Resources:
                 Resource: "*"
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/AmazonElasticFileSystemClientReadWriteAccess"
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 
   LambdaSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
