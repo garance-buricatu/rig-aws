@@ -1,17 +1,18 @@
 use api::OpenDataItem;
-use serde::Serialize;
+use serde::{Serialize, Serializer};
+use std::fmt::Write;
 
 pub mod api;
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct CategoryMetadata {
     pub id: String,
     pub titre: String,
     pub notes: String,
-    pub organisation: Organization,
+    pub organisation: String,
     pub territoire: Vec<String>,
-    pub groupes: Vec<Group>,
-    pub tags: Vec<Tag>,
+    pub groupes: Vec<String>,
+    pub tags: Vec<String>,
     pub description_donnees: Vec<String>,
     pub methodologie: String,
 }
@@ -21,9 +22,9 @@ impl From<OpenDataItem> for CategoryMetadata {
         CategoryMetadata {
             id: value.id,
             titre: value.title,
-            tags: value.tags.into_iter().map(|t| t.into()).collect(),
-            groupes: value.groups.into_iter().map(|g| g.into()).collect(),
-            organisation: value.organization.into(),
+            tags: value.tags.into_iter().map(|t| t.name).collect(),
+            groupes: value.groups.into_iter().map(|g| g.name).collect(),
+            organisation: value.organization.name,
             notes: value.notes,
             territoire: value.territoire,
             description_donnees: value
@@ -36,43 +37,34 @@ impl From<OpenDataItem> for CategoryMetadata {
     }
 }
 
-#[derive(Debug, Serialize, Clone)]
-pub struct Organization {
-    pub titre: String,
-    pub description: Option<String>,
-}
+impl Serialize for CategoryMetadata {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut paragraph = String::new();
 
-impl From<api::Organization> for Organization {
-    fn from(value: api::Organization) -> Self {
-        Organization {
-            titre: value.title,
-            description: value.description,
-        }
-    }
-}
+        // Adding each field as a sentence in the paragraph
+        write!(&mut paragraph, "{}. ", self.titre).unwrap();
+        write!(&mut paragraph, "{}. ", self.notes).unwrap();
+        write!(&mut paragraph, "{}. ", self.description_donnees.join(", ")).unwrap();
+        write!(&mut paragraph, "{}.", self.methodologie).unwrap();
+        write!(&mut paragraph, "Organisation: {}. ", self.organisation).unwrap();
+        write!(
+            &mut paragraph,
+            "Territoire comprend: {}. ",
+            self.territoire.join(", ")
+        )
+        .unwrap();
+        write!(
+            &mut paragraph,
+            "Groupes comprend: {}. ",
+            self.groupes.join(", ")
+        )
+        .unwrap();
+        write!(&mut paragraph, "Tags: {}. ", self.tags.join(", ")).unwrap();
 
-#[derive(Debug, Serialize, Clone)]
-pub struct Group {
-    pub description: Option<String>,
-    pub titre: String,
-}
-
-impl From<api::Group> for Group {
-    fn from(value: api::Group) -> Self {
-        Group {
-            description: value.description,
-            titre: value.title,
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Clone)]
-pub struct Tag {
-    pub nom: String,
-}
-
-impl From<api::Tag> for Tag {
-    fn from(value: api::Tag) -> Self {
-        Tag { nom: value.name }
+        // Serialize the paragraph as a string
+        serializer.serialize_str(&paragraph)
     }
 }

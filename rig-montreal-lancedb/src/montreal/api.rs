@@ -41,7 +41,7 @@ impl MontrealOpenDataClient {
                     Ok(response) => {
                         let results = response.result.results;
 
-                        if results.len() == 0 {
+                        if results.is_empty() {
                             None
                         } else {
                             tracing::info!("Fetched {} results", results.len());
