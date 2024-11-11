@@ -3,7 +3,11 @@ use std::{env, str::FromStr};
 use lambda_runtime::{run, service_fn, tracing::Level, Error, LambdaEvent};
 use lancedb::Connection;
 use rig::{
-    completion::Prompt, providers::{self, openai::{GPT_4O, TEXT_EMBEDDING_ADA_002}},
+    completion::Prompt,
+    providers::{
+        self,
+        openai::{GPT_4O, TEXT_EMBEDDING_ADA_002},
+    },
 };
 use rig_lancedb::{LanceDbVectorStore, SearchParams};
 use serde::{Deserialize, Serialize};

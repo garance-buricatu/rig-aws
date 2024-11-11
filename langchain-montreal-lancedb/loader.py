@@ -29,4 +29,10 @@ async def main():
     os.remove(file_path)
 
     # Note: dataset is too small to have a meaningful index (less than 5000 vectors)
-    LanceDB.from_documents(documents, embeddings=OpenAIEmbeddings(model='text-embedding-ada-002'), uri="/mnt/efs")
+    LanceDB.from_documents(
+        documents, 
+        embeddings=OpenAIEmbeddings(model='text-embedding-ada-002'), 
+        uri="/mnt/efs"
+    )
+
+    return {"success": True }

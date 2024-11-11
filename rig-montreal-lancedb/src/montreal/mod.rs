@@ -46,9 +46,9 @@ impl Serialize for CategoryMetadata {
 
         // Adding each field as a sentence in the paragraph
         write!(&mut paragraph, "{}. ", self.titre).unwrap();
-        write!(&mut paragraph, "{}. ", self.notes).unwrap();
-        write!(&mut paragraph, "{}. ", self.description_donnees.join(", ")).unwrap();
-        write!(&mut paragraph, "{}.", self.methodologie).unwrap();
+        write!(&mut paragraph, "{} ", self.notes).unwrap();
+        write!(&mut paragraph, "{} ", self.description_donnees.join(", ")).unwrap();
+        write!(&mut paragraph, "{} ", self.methodologie).unwrap();
         write!(&mut paragraph, "Organisation: {}. ", self.organisation).unwrap();
         write!(
             &mut paragraph,

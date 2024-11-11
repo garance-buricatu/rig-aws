@@ -13,6 +13,7 @@ use rig_montreal_lancedb::{
     montreal::{api::MontrealOpenDataClient, CategoryMetadata},
 };
 use serde::{Deserialize, Serialize};
+use tiktoken_rs::CoreBPE;
 
 #[derive(Deserialize)]
 struct Event {}
@@ -62,6 +63,8 @@ async fn handler(
 ) -> Result<Response, Error> {
     let model = openai_client.embedding_model(TEXT_EMBEDDING_ADA_002);
 
+    let core_bpe = &tiktoken_rs::cl100k_base()?;
+
     let embeddings_builder = montreal_client
         .search_all()
         .fold(
@@ -71,13 +74,11 @@ async fn handler(
 
                 let category = CategoryMetadata::from(opendata_item);
 
+                let chunks = chunk(core_bpe, &category);
+
                 let category_json = serde_json::to_value(&category).unwrap();
 
-                builder.json_document(
-                    &category.id,
-                    category_json.clone(),
-                    vec![category_json.to_string()],
-                )
+                builder.json_document(&category.id, category_json.clone(), chunks)
             },
         )
         .await;
@@ -96,7 +97,7 @@ async fn handler(
         .execute()
         .await?;
 
-    // Note: need at least 256 vectors to create an index. 
+    // Note: need at least 256 vectors to create an index.
     table
         .create_index(
             &["embedding"],
@@ -108,4 +109,28 @@ async fn handler(
         .await?;
 
     Ok(Response { success: true })
+}
+
+fn chunk(core_bpe: &CoreBPE, value: &CategoryMetadata) -> Vec<String> {
+    let document = serde_json::to_string(value).unwrap();
+    let tokens = core_bpe.encode_with_special_tokens(&document);
+
+    let mut chunks = vec![];
+
+    if tokens.len() > 8191 {
+        let parts = (tokens.len() as f64 / 8191_f64).ceil();
+        let split_size = (document.len() as f64 / parts as f64).ceil() as usize;
+
+        for i in 0..parts as usize {
+            let document_chunk = document
+                [(i * split_size)..std::cmp::min((i + 1) * split_size, document.len() - 1)]
+                .to_string();
+
+            chunks.push(document_chunk);
+        }
+    } else {
+        chunks.push(document);
+    }
+
+    chunks
 }

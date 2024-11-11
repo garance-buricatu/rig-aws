@@ -10,11 +10,12 @@ def lambda_handler(event, context):
     return asyncio.run(main())
     
 async def main(event: dict):
-    llm = ChatOpenAI(model="gpt-4o")
+    model = ChatOpenAI(model="gpt-4o")
+    embedding_model = OpenAIEmbeddings(model='text-embedding-ada-002')
 
     vectorstore = LanceDB(
-        uri="",
-        embedding=OpenAIEmbeddings(model='text-embedding-ada-002')
+        uri="/mnt/efs",
+        embedding=embedding_model
     )
 
     retriever = vectorstore.as_retriever()
@@ -24,7 +25,7 @@ async def main(event: dict):
     rag_chain = (
         {"context": retriever | format_docs, "question": RunnablePassthrough()}
         | prompt
-        | llm
+        | model
         | StrOutputParser()
     )
 
