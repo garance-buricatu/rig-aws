@@ -6,8 +6,8 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain import hub
 
 
-def lambda_handler(event, context):
-    return asyncio.run(main())
+def handler(event, context):
+    return asyncio.run(main(event))
     
 async def main(event: dict):
     model = ChatOpenAI(model="gpt-4o")

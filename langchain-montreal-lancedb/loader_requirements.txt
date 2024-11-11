@@ -1,7 +1,5 @@
 langchain-openai
 langchain-community
-langchain-core
-langchain
 lancedb
 aiohttp
 jq

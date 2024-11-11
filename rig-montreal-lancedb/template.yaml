@@ -22,6 +22,12 @@ Parameters:
   OpenAIApiKey:
     Description: Open AI api key.
     Type: String
+  LoaderLambdaImageUri:
+    Description: Image uri (in ECR) for loader python lambda function
+    Type: String
+  AppLambdaImageUri:
+    Description: Image uri (in ECR) for app python lambda function
+    Type: String
 
 Resources:
   FileSystem:
@@ -196,13 +202,10 @@ Resources:
       - MountTarget1
       - MountTarget2
     Properties:
-      Runtime: python3.10
-      Handler: loader.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 300
       Code: 
-        S3Bucket: !Ref S3Bucket
-        S3Key: langchain/loader/package.zip
+        ImageUri: !Ref LoaderLambdaImageUri
       Environment:
         Variables:
           OPENAI_API_KEY: !Ref OpenAIApiKey
@@ -225,13 +228,10 @@ Resources:
       - MountTarget1
       - MountTarget2
     Properties:
-      Runtime: python3.10
-      Handler: app.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 300
       Code: 
-        S3Bucket: !Ref S3Bucket
-        S3Key: langchain/app/package.zip
+        ImageUri: !Ref AppLambdaImageUri
       Environment:
         Variables:
           OPENAI_API_KEY: !Ref OpenAIApiKey

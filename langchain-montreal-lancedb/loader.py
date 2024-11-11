@@ -6,7 +6,7 @@ from langchain_community.vectorstores import LanceDB
 from langchain_openai import OpenAIEmbeddings
 from montreal import MontrealOpenDataClient, CategoryMetadata
 
-def lambda_handler(event, context):
+def handler(event, context):
     return asyncio.run(main())
     
 async def main():
