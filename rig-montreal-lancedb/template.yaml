@@ -19,8 +19,8 @@ Parameters:
     Type: String
   # NOTE: Do NOT do this in production. Use AWS Secrets Manager or SSM Parameter Store instead.
   # Right now, it's passing the api key directly as env var to the lambda which is not secure.
-  CohereApiKey:
-    Description: Cohere api key.
+  OpenAIApiKey:
+    Description: Open AI api key.
     Type: String
 
 Resources:
@@ -87,10 +87,10 @@ Resources:
       Timeout: 300
       Code: 
         S3Bucket: !Ref S3Bucket
-        S3Key: loader/bootstrap.zip
+        S3Key: rig/loader/bootstrap.zip
       Environment:
         Variables:
-          COHERE_API_KEY: !Ref CohereApiKey
+          OPENAI_API_KEY: !Ref OpenAIApiKey
       VpcConfig:
         SecurityGroupIds:
           # Whitelist NFS traffic to mount targets
@@ -104,7 +104,6 @@ Resources:
         - Arn: !GetAtt FileSystemAccessPoint.Arn
           LocalMountPath: "/mnt/efs"  # Path where the EFS will be mounted in the Lambda environment
 
-
   AppLambdaFunction:
     Type: AWS::Lambda::Function
     DependsOn:
@@ -117,10 +116,10 @@ Resources:
       Timeout: 300
       Code: 
         S3Bucket: !Ref S3Bucket
-        S3Key: app/bootstrap.zip
+        S3Key: rig/app/bootstrap.zip
       Environment:
         Variables:
-          COHERE_API_KEY: !Ref CohereApiKey
+          OPENAI_API_KEY: !Ref OpenAIApiKey
       VpcConfig:
         SecurityGroupIds:
           # Whitelist NFS traffic to mount targets
@@ -187,3 +186,64 @@ Resources:
       ToPort: 443
       CidrIp: "0.0.0.0/0"
       GroupId: !Ref LambdaSecurityGroup
+
+  ##########################################
+  #       Python lambda functions          #
+  ##########################################
+  PyLoaderLambdaFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - MountTarget1
+      - MountTarget2
+    Properties:
+      Runtime: python3.10
+      Handler: loader.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 300
+      Code: 
+        S3Bucket: !Ref S3Bucket
+        S3Key: langchain/loader/package.zip
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Ref OpenAIApiKey
+      VpcConfig:
+        SecurityGroupIds:
+          # Whitelist NFS traffic to mount targets
+          # Whitelist HTTPS traffic to the internet (calling API)
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          # Same subnets where EFS mount targets are created
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      FileSystemConfigs:
+        - Arn: !GetAtt FileSystemAccessPoint.Arn
+          LocalMountPath: "/mnt/efs"  # Path where the EFS will be mounted in the Lambda environment
+
+  PyAppLambdaFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - MountTarget1
+      - MountTarget2
+    Properties:
+      Runtime: python3.10
+      Handler: app.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 300
+      Code: 
+        S3Bucket: !Ref S3Bucket
+        S3Key: langchain/app/package.zip
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Ref OpenAIApiKey
+      VpcConfig:
+        SecurityGroupIds:
+          # Whitelist NFS traffic to mount targets
+          # Whitelist HTTPS traffic to the internet (calling API)
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          # Same subnets where EFS mount targets are created
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      FileSystemConfigs:
+        - Arn: !GetAtt FileSystemAccessPoint.Arn
+          LocalMountPath: "/mnt/efs"  # Path where the EFS will be mounted in the Lambda environment
