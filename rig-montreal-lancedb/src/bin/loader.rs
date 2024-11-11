@@ -6,7 +6,7 @@ use lambda_runtime::{run, service_fn, tracing::Level, Error, LambdaEvent};
 use lancedb::{index::vector::IvfPqIndexBuilder, Connection};
 use rig::{
     embeddings::{EmbeddingModel, EmbeddingsBuilder},
-    providers::{self, cohere::EMBED_MULTILINGUAL_LIGHT_V3},
+    providers::{self, openai::TEXT_EMBEDDING_ADA_002},
 };
 use rig_montreal_lancedb::{
     arrow_helper::{as_record_batch, schema},
@@ -35,32 +35,32 @@ async fn main() -> Result<(), Error> {
         .init();
 
     // Initialize the OpenAI client
-    let cohere_client = providers::cohere::Client::new(
-        &env::var("COHERE_API_KEY").expect("COHERE_API_KEY not set"),
+    let openai_client = providers::openai::Client::new(
+        &env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set"),
     );
 
     // Initialize LanceDb client oon EFS mount target
     // Use `/mnt/efs` if data is stored on EFS
     // Use `/tmp` if data is stored on local disk in lambda
     // Use S3 uri if data is stored in S3
-    let db = lancedb::connect("/mnt/efs").execute().await?;
+    let db = lancedb::connect("data").execute().await?;
 
     // Initialize Spotify client
     let montreal_client = MontrealOpenDataClient::new();
 
     run(service_fn(|request: LambdaEvent<Event>| {
-        handler(request, &cohere_client, &db, &montreal_client)
+        handler(request, &openai_client, &db, &montreal_client)
     }))
     .await
 }
 
 async fn handler(
     _request: LambdaEvent<Event>,
-    cohere_client: &providers::cohere::Client,
+    openai_client: &providers::openai::Client,
     db: &Connection,
     montreal_client: &MontrealOpenDataClient,
 ) -> Result<Response, Error> {
-    let model = cohere_client.embedding_model(EMBED_MULTILINGUAL_LIGHT_V3, "search_document");
+    let model = openai_client.embedding_model(TEXT_EMBEDDING_ADA_002);
 
     let embeddings_builder = montreal_client
         .search_all()
@@ -96,6 +96,7 @@ async fn handler(
         .execute()
         .await?;
 
+    // Note: need at least 256 vectors to create an index. 
     table
         .create_index(
             &["embedding"],

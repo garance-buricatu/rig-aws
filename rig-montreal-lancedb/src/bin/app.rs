@@ -3,8 +3,7 @@ use std::{env, str::FromStr};
 use lambda_runtime::{run, service_fn, tracing::Level, Error, LambdaEvent};
 use lancedb::Connection;
 use rig::{
-    completion::Prompt,
-    providers::{self, cohere::EMBED_MULTILINGUAL_LIGHT_V3},
+    completion::Prompt, providers::{self, openai::{GPT_4O, TEXT_EMBEDDING_ADA_002}},
 };
 use rig_lancedb::{LanceDbVectorStore, SearchParams};
 use serde::{Deserialize, Serialize};
@@ -32,28 +31,28 @@ async fn main() -> Result<(), Error> {
         .init();
 
     // Initialize the OpenAI client
-    let cohere_client = providers::cohere::Client::new(
-        &env::var("COHERE_API_KEY").expect("COHERE_API_KEY not set"),
+    let openai_client = providers::openai::Client::new(
+        &env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set"),
     );
 
     // Initialize LanceDb client on EFS mount target
     // Use `/mnt/efs` if data is stored on EFS
     // Use `/tmp` if data is stored on local disk in lambda
     // Use S3 uri if data is stored in S3
-    let db = lancedb::connect("/mnt/efs").execute().await?;
+    let db = lancedb::connect("data").execute().await?;
 
     run(service_fn(|request: LambdaEvent<Event>| {
-        handler(request, &cohere_client, &db)
+        handler(request, &openai_client, &db)
     }))
     .await
 }
 
 async fn handler(
     request: LambdaEvent<Event>,
-    cohere_client: &providers::cohere::Client,
+    openai_client: &providers::openai::Client,
     db: &Connection,
 ) -> Result<AgentResponse, Error> {
-    let model = cohere_client.embedding_model(EMBED_MULTILINGUAL_LIGHT_V3, "search_query");
+    let model = openai_client.embedding_model(TEXT_EMBEDDING_ADA_002);
 
     let table = db.open_table("montreal_open_data").execute().await?;
 
@@ -62,9 +61,9 @@ async fn handler(
     let index = LanceDbVectorStore::new(table, model, "id", search_params).await?;
 
     // Create agent with a single context prompt
-    let spotify_agent = cohere_client
-        .agent("command-r-plus-04-2024")
-        .dynamic_context(1, index)
+    let spotify_agent = openai_client
+        .agent(GPT_4O)
+        .dynamic_context(2, index)
         .build();
 
     // Prompt the agent and print the response

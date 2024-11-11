@@ -10,6 +10,4 @@ def lambda_handler(event, context):
         HumanMessage(content=event["prompt"])
     ])
 
-    print(response.content)
-
     return {"response": response.content}
