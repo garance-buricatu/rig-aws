@@ -5,7 +5,10 @@ WORKDIR ${LAMBDA_TASK_ROOT}
 ARG FUNCTION_NAME
 
 # Copy function code
-COPY . ${LAMBDA_TASK_ROOT}
+COPY ${FUNCTION_NAME}.py ${LAMBDA_TASK_ROOT}
+COPY ${FUNCTION_NAME}_requirements.txt ${LAMBDA_TASK_ROOT}
+COPY __init__.py ${LAMBDA_TASK_ROOT}
+COPY montreal.py ${LAMBDA_TASK_ROOT}
 
 RUN set -eux; \
     REQUIREMENTS_FILE="${FUNCTION_NAME}_requirements.txt"; \

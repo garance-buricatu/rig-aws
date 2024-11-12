@@ -31,7 +31,7 @@ async def main():
     # Note: dataset is too small to have a meaningful index (less than 5000 vectors)
     LanceDB.from_documents(
         documents, 
-        embeddings=OpenAIEmbeddings(model='text-embedding-ada-002'), 
+        embedding=OpenAIEmbeddings(model='text-embedding-ada-002'), 
         uri="/mnt/efs"
     )
 
