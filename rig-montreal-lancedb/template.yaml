@@ -204,6 +204,7 @@ Resources:
     Properties:
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 300
+      PackageType: Image
       Code: 
         ImageUri: !Ref LoaderLambdaImageUri
       Environment:
@@ -229,7 +230,8 @@ Resources:
       - MountTarget2
     Properties:
       Role: !GetAtt LambdaExecutionRole.Arn
-      Timeout: 300
+      Timeout: 120
+      PackageType: Image
       Code: 
         ImageUri: !Ref AppLambdaImageUri
       Environment:

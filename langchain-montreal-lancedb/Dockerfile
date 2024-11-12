@@ -3,6 +3,7 @@ FROM public.ecr.aws/lambda/python:3.10-x86_64
 WORKDIR ${LAMBDA_TASK_ROOT}
 
 ARG FUNCTION_NAME
+ENV FUNCTION_NAME=${FUNCTION_NAME}
 
 # Copy function code
 COPY . ${LAMBDA_TASK_ROOT}
