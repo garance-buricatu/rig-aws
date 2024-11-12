@@ -22,6 +22,9 @@ Parameters:
   OpenAIApiKey:
     Description: Open AI api key.
     Type: String
+  LangchainApiKey:
+    Description: Langchain api key.
+    Type: String
   LoaderLambdaImageUri:
     Description: Image uri (in ECR) for loader python lambda function
     Type: String
@@ -197,7 +200,7 @@ Resources:
   #       Python lambda functions          #
   ##########################################
   PyLoaderLambdaFunction:
-    Type: AWS::Lambda::Function
+    Type: +
     DependsOn:
       - MountTarget1
       - MountTarget2
@@ -205,11 +208,18 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 300
       PackageType: Image
+      ImageConfig:
+        Command: 
+          - loader.handler
       Code: 
         ImageUri: !Ref LoaderLambdaImageUri
       Environment:
         Variables:
           OPENAI_API_KEY: !Ref OpenAIApiKey
+          LANGSMITH_TRACING_V2: true
+          LANGSMITH_ENDPOINT: "https://api.smith.langchain.com"
+          LANGCHAIN_API_KEY: !Ref LangchainApiKey
+          LANGCHAIN_PROJECT: montreaal-lancedb
       VpcConfig:
         SecurityGroupIds:
           # Whitelist NFS traffic to mount targets
@@ -237,6 +247,10 @@ Resources:
       Environment:
         Variables:
           OPENAI_API_KEY: !Ref OpenAIApiKey
+          LANGSMITH_TRACING_V2: true
+          LANGSMITH_ENDPOINT: "https://api.smith.langchain.com"
+          LANGCHAIN_API_KEY: !Ref LangchainApiKey
+          LANGCHAIN_PROJECT: montreaal-lancedb
       VpcConfig:
         SecurityGroupIds:
           # Whitelist NFS traffic to mount targets

@@ -15,13 +15,13 @@ async def main():
 
     data = [CategoryMetadata(item).to_paragraph() for item in items]
 
-    file_path = "./open_data_results.json"
+    file_path = "/tmp/open_data_results.json"
 
     with open(file_path, "w") as file:
         json.dump(data, file, indent=2)
 
     loader = JSONLoader(
-        file_path='./open_data_results.json',
+        file_path='/tmp/open_data_results.json',
         jq_schema='.[]'
     )
     documents = loader.load()
