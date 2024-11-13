@@ -84,6 +84,9 @@ Resources:
           ToPort: 2049
           SourceSecurityGroupId: !Ref LambdaSecurityGroup
 
+  ##########################################
+  #       Rig lambda functions / EFS       #
+  ##########################################
   LoaderLambdaFunction:
     Type: AWS::Lambda::Function
     DependsOn:
@@ -197,7 +200,7 @@ Resources:
       GroupId: !Ref LambdaSecurityGroup
 
   ##########################################
-  #       Python lambda functions          #
+  #    Langchain lambda functions / EFS    #
   ##########################################
   PyLoaderLambdaFunction:
     Type: +
