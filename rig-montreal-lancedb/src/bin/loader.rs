@@ -3,7 +3,7 @@ use std::{env, str::FromStr, sync::Arc};
 use arrow_array::RecordBatchIterator;
 use futures::StreamExt;
 use lambda_runtime::{run, service_fn, tracing::Level, Error, LambdaEvent};
-use lancedb::{index::vector::IvfPqIndexBuilder, Connection};
+use lancedb::Connection;
 use rig::{
     embeddings::{EmbeddingModel, EmbeddingsBuilder},
     providers::{self, openai::TEXT_EMBEDDING_ADA_002},
@@ -89,24 +89,12 @@ async fn handler(
 
     let record_batch = as_record_batch(embeddings, model.ndims());
 
-    let table = db
-        .create_table(
-            "montreal_open_data",
-            RecordBatchIterator::new(vec![record_batch], Arc::new(schema(model.ndims()))),
-        )
-        .execute()
-        .await?;
-
-    // Note: need at least 256 vectors to create an index.
-    table
-        .create_index(
-            &["embedding"],
-            lancedb::index::Index::IvfPq(
-                IvfPqIndexBuilder::default().distance_type(lancedb::DistanceType::Cosine),
-            ),
-        )
-        .execute()
-        .await?;
+    db.create_table(
+        "montreal_data",
+        RecordBatchIterator::new(vec![record_batch], Arc::new(schema(model.ndims()))),
+    )
+    .execute()
+    .await?;
 
     Ok(Response { success: true })
 }

@@ -58,7 +58,7 @@ async fn handler(
 ) -> Result<AgentResponse, Error> {
     let model = openai_client.embedding_model(TEXT_EMBEDDING_ADA_002);
 
-    let table = db.open_table("montreal_open_data").execute().await?;
+    let table = db.open_table("montreal_data").execute().await?;
 
     // Define search_params params that will be used by the vector store to perform the vector search.
     let search_params = SearchParams::default().distance_type(lancedb::DistanceType::Cosine);
