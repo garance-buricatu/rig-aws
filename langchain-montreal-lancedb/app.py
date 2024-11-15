@@ -15,7 +15,8 @@ async def main(event: dict):
 
     vectorstore = LanceDB(
         uri="/mnt/efs",
-        embedding=embedding_model
+        embedding=embedding_model,
+        vector_key="vector",
     )
 
     retriever = vectorstore.as_retriever()

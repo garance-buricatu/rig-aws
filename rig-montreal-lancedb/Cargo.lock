@@ -4069,8 +4069,7 @@ dependencies = [
 [[package]]
 name = "rig-core"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a4471fdf8092996e85d48617f541299663aafcae7ae164be8911011d314ab59"
+source = "git+https://github.com/0xPlaygrounds/rig?branch=main#0b89fffd0cc8e3aa4237466b376aaf34bb746d34"
 dependencies = [
  "futures",
  "glob",
@@ -4086,8 +4085,7 @@ dependencies = [
 [[package]]
 name = "rig-lancedb"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f5be92155a32227995616ea497560053af2f8f5b1ec3332ac1785df945d2b51"
+source = "git+https://github.com/0xPlaygrounds/rig?branch=main#0b89fffd0cc8e3aa4237466b376aaf34bb746d34"
 dependencies = [
  "arrow-array",
  "futures",

@@ -12,8 +12,8 @@ lambda_runtime = "0.13.0"
 lancedb = "0.10.0"
 openssl = { version = "0.10.68", features = ["vendored"]}
 reqwest = "0.12.8"
-rig-core = "0.4.0"
-rig-lancedb = "0.1.1"
+rig-core = { git = "https://github.com/0xPlaygrounds/rig", branch = "main" }
+rig-lancedb = { git = "https://github.com/0xPlaygrounds/rig", branch = "main" }
 serde = "1.0.213"
 serde_json = "1.0.132"
 tiktoken-rs = "0.6.0"
