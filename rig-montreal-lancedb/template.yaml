@@ -145,6 +145,79 @@ Resources:
         - Arn: !GetAtt FileSystemAccessPoint.Arn
           LocalMountPath: "/mnt/efs"  # Path where the EFS will be mounted in the Lambda environment
 
+  ##########################################
+  #    Langchain lambda functions / EFS    #
+  ##########################################
+  PyLoaderLambdaFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - MountTarget1
+      - MountTarget2
+    Properties:
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 300
+      Memory: 256
+      PackageType: Image
+      ImageConfig:
+        Command: 
+          - loader.handler
+      Code: 
+        ImageUri: !Ref LoaderLambdaImageUri
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Ref OpenAIApiKey
+          LANGSMITH_TRACING_V2: true
+          LANGSMITH_ENDPOINT: "https://api.smith.langchain.com"
+          LANGCHAIN_API_KEY: !Ref LangchainApiKey
+          LANGCHAIN_PROJECT: montreaal-lancedb
+      VpcConfig:
+        SecurityGroupIds:
+          # Whitelist NFS traffic to mount targets
+          # Whitelist HTTPS traffic to the internet (calling API)
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          # Same subnets where EFS mount targets are created
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      FileSystemConfigs:
+        - Arn: !GetAtt FileSystemAccessPoint.Arn
+          LocalMountPath: "/mnt/efs"  # Path where the EFS will be mounted in the Lambda environment
+
+  PyAppLambdaFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - MountTarget1
+      - MountTarget2
+    Properties:
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 120
+      Memory: 256
+      PackageType: Image
+      Code: 
+        ImageUri: !Ref AppLambdaImageUri
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Ref OpenAIApiKey
+          LANGSMITH_TRACING_V2: true
+          LANGSMITH_ENDPOINT: "https://api.smith.langchain.com"
+          LANGCHAIN_API_KEY: !Ref LangchainApiKey
+          LANGCHAIN_PROJECT: montreaal-lancedb
+      VpcConfig:
+        SecurityGroupIds:
+          # Whitelist NFS traffic to mount targets
+          # Whitelist HTTPS traffic to the internet (calling API)
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          # Same subnets where EFS mount targets are created
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      FileSystemConfigs:
+        - Arn: !GetAtt FileSystemAccessPoint.Arn
+          LocalMountPath: "/mnt/efs"  # Path where the EFS will be mounted in the Lambda environment
+
+  ##########################################
+  #    Lambda Role and Security Group      #
+  ##########################################
   LambdaExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -198,71 +271,3 @@ Resources:
       ToPort: 443
       CidrIp: "0.0.0.0/0"
       GroupId: !Ref LambdaSecurityGroup
-
-  ##########################################
-  #    Langchain lambda functions / EFS    #
-  ##########################################
-  PyLoaderLambdaFunction:
-    Type: +
-    DependsOn:
-      - MountTarget1
-      - MountTarget2
-    Properties:
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Timeout: 300
-      PackageType: Image
-      ImageConfig:
-        Command: 
-          - loader.handler
-      Code: 
-        ImageUri: !Ref LoaderLambdaImageUri
-      Environment:
-        Variables:
-          OPENAI_API_KEY: !Ref OpenAIApiKey
-          LANGSMITH_TRACING_V2: true
-          LANGSMITH_ENDPOINT: "https://api.smith.langchain.com"
-          LANGCHAIN_API_KEY: !Ref LangchainApiKey
-          LANGCHAIN_PROJECT: montreaal-lancedb
-      VpcConfig:
-        SecurityGroupIds:
-          # Whitelist NFS traffic to mount targets
-          # Whitelist HTTPS traffic to the internet (calling API)
-          - !Ref LambdaSecurityGroup
-        SubnetIds:
-          # Same subnets where EFS mount targets are created
-          - !Ref PrivateSubnet1
-          - !Ref PrivateSubnet2
-      FileSystemConfigs:
-        - Arn: !GetAtt FileSystemAccessPoint.Arn
-          LocalMountPath: "/mnt/efs"  # Path where the EFS will be mounted in the Lambda environment
-
-  PyAppLambdaFunction:
-    Type: AWS::Lambda::Function
-    DependsOn:
-      - MountTarget1
-      - MountTarget2
-    Properties:
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Timeout: 120
-      PackageType: Image
-      Code: 
-        ImageUri: !Ref AppLambdaImageUri
-      Environment:
-        Variables:
-          OPENAI_API_KEY: !Ref OpenAIApiKey
-          LANGSMITH_TRACING_V2: true
-          LANGSMITH_ENDPOINT: "https://api.smith.langchain.com"
-          LANGCHAIN_API_KEY: !Ref LangchainApiKey
-          LANGCHAIN_PROJECT: montreaal-lancedb
-      VpcConfig:
-        SecurityGroupIds:
-          # Whitelist NFS traffic to mount targets
-          # Whitelist HTTPS traffic to the internet (calling API)
-          - !Ref LambdaSecurityGroup
-        SubnetIds:
-          # Same subnets where EFS mount targets are created
-          - !Ref PrivateSubnet1
-          - !Ref PrivateSubnet2
-      FileSystemConfigs:
-        - Arn: !GetAtt FileSystemAccessPoint.Arn
-          LocalMountPath: "/mnt/efs"  # Path where the EFS will be mounted in the Lambda environment
